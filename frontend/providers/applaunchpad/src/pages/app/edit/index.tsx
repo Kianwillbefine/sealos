@@ -20,13 +20,14 @@ import {
 } from '@/utils/deployYaml2Json';
 import { serviceSideProps } from '@/utils/i18n';
 import { getErrText, patchYamlList } from '@/utils/tools';
+import { getSubmitErrorMessage } from '@/utils/formErrorMessage';
 
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'next-i18next';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type SubmitErrorHandler } from 'react-hook-form';
 import Form from './components/Form';
 import Header from './components/Header';
 import Yaml from './components/Yaml';
@@ -248,16 +249,12 @@ const EditApp = ({ appName, tabType }: { appName?: string; tabType: string }) =>
     ]
   );
 
-  const submitError = useCallback(() => {
-    const deepSearch = (obj: any): string => {
-      if (!obj || typeof obj !== 'object') return t('Submit Error');
-      if (!!obj.message) {
-        return obj.message;
-      }
-      return deepSearch(Object.values(obj)[0]);
-    };
-    toast.error(deepSearch(formHook.formState.errors));
-  }, [formHook.formState.errors, t]);
+  const submitError = useCallback<SubmitErrorHandler<AppEditType>>(
+    (errors) => {
+      toast.error(getSubmitErrorMessage(errors, t('Submit Error'), t('Invalid name')));
+    },
+    [t]
+  );
 
   const handleDomainVerified = useCallback(
     ({ index, customDomain }: { index: number; customDomain: string }) => {
