@@ -54,6 +54,11 @@ import styles from './index.module.scss';
 import { NetworkSection } from './NetworkSection';
 import { mountPathToConfigMapKey } from '@/utils/tools';
 import { useQuery } from '@tanstack/react-query';
+import {
+  APP_NAME_MAX_LENGTH,
+  DNS1035_NAME_PATTERN,
+  isValidAppName
+} from '@/utils/appNameValidation';
 
 const ConfigmapModal = dynamic(() => import('./ConfigmapModal'));
 const StoreModal = dynamic(() => import('./StoreModal'));
@@ -284,9 +289,24 @@ const Form = ({
           setValue('sharedMemory.sizeLimit', Math.max(memoryInGi, 1));
         }
       }
+
+      if (!isEdit && name === 'appName' && value.appName && value.configMapList?.length) {
+        const volumeName = `${value.appName}-cm`;
+        const configMapList = value.configMapList as AppEditType['configMapList'];
+        if (configMapList.some((item) => item.volumeName !== volumeName)) {
+          setValue(
+            'configMapList',
+            configMapList.map((item) => ({
+              ...item,
+              volumeName
+            })),
+            { shouldDirty: true }
+          );
+        }
+      }
     });
     return () => subscription.unsubscribe();
-  }, [watch, setValue]);
+  }, [watch, setValue, isEdit]);
 
   useEffect(() => {
     if (!IMAGE_PORTS_ENABLED || isEdit || !already) {
@@ -717,24 +737,36 @@ const Form = ({
                     disabled={isEdit}
                     title={isEdit ? t('Not allowed to change app name') || '' : ''}
                     autoFocus={true}
-                    maxLength={60}
+                    maxLength={APP_NAME_MAX_LENGTH}
                     placeholder={
                       t(
                         'Starts with a letter and can contain only lowercase letters, digits, and hyphens (-)'
                       ) || ''
                     }
                     {...register('appName', {
-                      required: t('Not allowed to change app name') || '',
-                      maxLength: 60,
+                      required: t('App Name is required') || '',
+                      maxLength: {
+                        value: APP_NAME_MAX_LENGTH,
+                        message: t('App name length limit', { length: APP_NAME_MAX_LENGTH }) || ''
+                      },
                       pattern: {
-                        value: /[a-z]([-a-z0-9]*[a-z0-9])?/g,
+                        value: DNS1035_NAME_PATTERN,
                         message: t(
                           'The application name can contain only lowercase letters, digits, and hyphens (-) and must start with a letter'
                         )
-                      }
+                      },
+                      validate: (value) =>
+                        isValidAppName(value) ||
+                        t('App name length limit', { length: APP_NAME_MAX_LENGTH }) ||
+                        ''
                     })}
                   />
                 </Flex>
+                {errors.appName?.message && (
+                  <Box mt={1} pl={`${labelWidth}px`} fontSize={'sm'} color={'red.500'}>
+                    {errors.appName.message}
+                  </Box>
+                )}
               </FormControl>
               {/* image */}
               <Box mb={7} className="driver-deploy-image">
