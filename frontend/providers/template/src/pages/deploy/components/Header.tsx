@@ -401,12 +401,15 @@ const Header = ({
                 color={'#fff'}
                 fontSize={'14px'}
                 fontWeight={500}
-                cursor={'pointer'}
+                cursor={isResourcesReady ? 'pointer' : 'not-allowed'}
+                opacity={isResourcesReady ? 1 : 0.5}
                 borderRadius={'8px'}
                 background={'rgba(255, 255, 255, 0.20)'}
                 h={'32px'}
                 p={'px'}
+                aria-disabled={!isResourcesReady}
                 onClick={() => {
+                  if (!isResourcesReady) return;
                   applyCb();
                 }}
               >
